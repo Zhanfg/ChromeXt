@@ -62,3 +62,6 @@ background execution are NOT supported. Android 17/Chrome device verification is
 - Lazy-load the incomplete JavaScript extension stub; importing and listing archives no
   longer depend on `extension.js` or an enriched AssetManager.
 - Android 17 click-to-dialog and SAF result still require device verification.
+
+- Use an item-only AlertDialog for the extension picker. Mixing `setMessage` and `setItems`
+  caused the list to be hidden by the message view on Android.

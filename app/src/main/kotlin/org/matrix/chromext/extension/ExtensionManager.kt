@@ -63,8 +63,9 @@ object ExtensionManager {
         items.map { "${it.name} · v${it.version} (inactive)" } +
             listOf("+ Import extension ZIP")
     AlertDialog.Builder(activity)
-        .setTitle("ChromeXt extensions (preview)")
-        .setMessage("Imported packages are stored locally but cannot run yet.")
+        .setTitle("ChromeXt extensions · inactive")
+        // AlertDialog uses its message ScrollView in preference to the list view.
+        // Setting both setMessage and setItems hides the import/list controls on Android.
         .setItems(labels.toTypedArray()) { _, position ->
           if (position == items.size) {
             AlertDialog.Builder(activity)
