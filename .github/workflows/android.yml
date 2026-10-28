@@ -19,6 +19,9 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Test extension archive import
+      run: ./gradlew app:testDebugUnitTest
+
     - name: Build debug
       run: ./gradlew app:assembleDebug
         

@@ -2,6 +2,7 @@ package org.matrix.chromext.extension
 
 import java.io.File
 import java.io.FileReader
+import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLConnection
@@ -115,5 +116,16 @@ object LocalFiles {
           JSONArray(extensions.map { it.value.put("id", it.key) })
         }
     return JSONObject(mapOf("type" to "init", "manifests" to info))
+  }
+  /**
+   * Validates a local ZIP stream and registers its manifest for the experimental extension
+   * inventory. This does not execute code or enable the release-only extension interface.
+   */
+  @Synchronized
+  fun importZip(stream: InputStream): ImportedExtension {
+    val imported = ExtensionArchiveInstaller.installZip(stream, directory)
+    val manifest = JSONObject(File(imported.directory, "manifest.json").readText(Charsets.UTF_8))
+    extensions[imported.id] = manifest
+    return imported
   }
 }
