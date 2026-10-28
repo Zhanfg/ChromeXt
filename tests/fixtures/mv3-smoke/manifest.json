@@ -16,5 +16,8 @@
         "smoke.css"
       ]
     }
+  ],
+  "permissions": [
+    "storage"
   ]
 }

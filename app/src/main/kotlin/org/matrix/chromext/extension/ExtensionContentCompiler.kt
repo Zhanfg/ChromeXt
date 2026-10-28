@@ -57,11 +57,16 @@ object ExtensionContentCompiler {
     // Privileged extension features must be implemented in a separate authenticated API plane.
     val forbidden = listOf(
         "background", "action", "browser_action", "page_action", "commands",
-        "permissions", "optional_permissions", "host_permissions",
+        "optional_permissions", "host_permissions",
         "optional_host_permissions", "declarative_net_request", "declarativeNetRequest",
         "externally_connectable", "devtools_page", "side_panel")
     require(forbidden.none { manifest.has(it) }) {
       "Extension requests APIs or background features not yet supported"
+    }
+    val permissions = manifest.optJSONArray("permissions")
+    require(permissions == null ||
+        (0 until permissions.length()).all { permissions.getString(it) == "storage" }) {
+      "Only storage permission is currently supported"
     }
     val rules = manifest.optJSONArray("content_scripts")
         ?: throw IllegalArgumentException("No content_scripts in manifest")

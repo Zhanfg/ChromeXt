@@ -104,3 +104,19 @@ than giving a misleading "supported" status.
 CDP availability is a runtime requirement. When Chrome disables remote debugging or CDP
 isolated worlds, the extension remains unable to execute. No unsafe fallback is attempted.
 Navigation timing and lifecycle still require target Chrome / Android 17 testing.
+
+## Phase 5: authenticated extension RPC
+
+An extension receives `chrome.runtime.id`, `chrome.runtime.getManifest()` and
+`chrome.storage.local.get/set/remove/clear` (callback and Promise style) in its
+CDP-isolated execution context. CDP `Runtime.addBinding` provides a private
+`__chromeXtExtensionRpc` channel. The browser maps each `executionContextId` to
+an installed and enabled extension; it never accepts an extension identifier from
+untrusted script payloads.
+
+The storage backend lives in browser-private SharedPreferences, isolated by extension
+ID, capped at 1 MiB, and requires the manifest's `storage` permission.
+The smoke fixture now increments a per-extension `visits` counter.
+
+There is still no native Chromium extension identity, tabs/windows APIs, MV3
+Service Worker, extension UI, native Web Store install, or complete runtime messaging.

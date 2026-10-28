@@ -91,7 +91,8 @@ object ExtensionManager {
         "Version: ${item.version}\nManifest: V${item.manifestVersion}\n" +
             "Local ID: ${item.id}\nStatus: ${if (enabled) "Enabled" else "Disabled"}\n" +
             "Supported: MV3 content_scripts (DOM-idle, top frame only).\n" +
-            "CDP isolated world; chrome.* APIs, background, and popups unsupported."
+            "CDP isolated world, chrome.runtime basics, storage.local (with permission).\n" +
+            "Background workers, popups and other Chrome APIs unsupported."
     AlertDialog.Builder(activity)
         .setTitle(item.name)
         .setMessage(details)
@@ -125,7 +126,7 @@ object ExtensionManager {
                 .setMessage(
                     "This runs third-party JavaScript and CSS on sites listed in its manifest. " +
                         "Scripts run in an isolated CDP execution world, with shared page DOM. " +
-                        "This is not Chromium's full extension sandbox or permissions system. " +
+                        "Only chrome.runtime basics and permission-gated storage.local are available. " +
                         "Only enable trusted extensions.")
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton("Enable") { _, _ ->
