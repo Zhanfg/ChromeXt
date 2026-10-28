@@ -107,7 +107,7 @@ object LocalFiles {
   }
 
   fun start(): JSONObject {
-    extensions.keys.forEach { startServer(it) }
+    // The experimental HTTP file server remains disabled until audited.
     val info =
         if (extensions.keys.size == 0) {
           Log.d("No extensions found")
@@ -128,4 +128,40 @@ object LocalFiles {
     extensions[imported.id] = manifest
     return imported
   }
+  // The preview manager owns UUID-named imported packages only.
+  private val managedId =
+      Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+  @Synchronized
+  fun listImported(): List<ImportedExtension> =
+      directory.listFiles()
+          ?.filter { it.isDirectory && managedId.matches(it.name) }
+          ?.mapNotNull { item ->
+            runCatching {
+                  val manifest = File(item, "manifest.json")
+                  require(manifest.isFile && manifest.length() <= 512L * 1024)
+                  val json = JSONObject(manifest.readText(Charsets.UTF_8))
+                  ImportedExtension(
+                      item.name,
+                      json.getString("name"),
+                      json.getString("version"),
+                      json.getInt("manifest_version"),
+                      item)
+                }
+                .getOrNull()
+          }
+          ?.sortedBy { it.name.lowercase() }
+          ?: emptyList()
+
+  @Synchronized
+  fun removeImported(id: String): Boolean {
+    if (!managedId.matches(id)) return false
+    val root = directory.canonicalFile
+    val target = File(root, id).canonicalFile
+    if (target.parentFile != root || !target.isDirectory) return false
+    if (!target.deleteRecursively()) return false
+    extensions.remove(id)
+    return true
+  }
+
 }

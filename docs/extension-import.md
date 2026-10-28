@@ -37,3 +37,17 @@ This branch adds an isolated ZIP ingestion primitive for a future file-picker/br
 2. Add extension metadata listing, disable/delete and rollback, without activating scripts.
 3. Introduce a capability-gated MV3 runtime and test a known extension against each API.
 4. Only then enable the vetted extension flow in release builds.
+
+## Phase 2: browser-process extension manager
+
+Chrome overflow menu → Extensions (preview) → Import extension ZIP. Chrome launches
+Android's Storage Access Framework. Imported packages are shown as **inactive**, and can be
+inspected or deleted after confirmation. No system-wide storage permission is requested.
+
+The request-code result hook handles the active Chrome Activity and its inherited
+onActivityResult overrides, including the newer overload. Activity recreation while the
+system picker is open still needs a device test and may require a lifecycle integration.
+
+The experimental HTTP file server is not started by this flow. CRX packages, Chrome Web
+Store installs, manifest v3 service workers, Chrome extension APIs, host permissions, and
+background execution are NOT supported. Android 17/Chrome device verification is pending.
