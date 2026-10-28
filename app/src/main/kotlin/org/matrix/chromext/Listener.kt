@@ -28,6 +28,7 @@ import org.matrix.chromext.devtools.DevToolClient
 import org.matrix.chromext.devtools.getInspectPages
 import org.matrix.chromext.devtools.hitDevTools
 import org.matrix.chromext.extension.LocalFiles
+import org.matrix.chromext.extension.ExtensionManager
 import org.matrix.chromext.hook.UserScriptHook
 import org.matrix.chromext.hook.WebViewHook
 import org.matrix.chromext.proxy.UserScriptProxy
@@ -490,13 +491,7 @@ object Listener {
         }
       }
       "extension" -> {
-        if (payload == "") {
-          if (BuildConfig.DEBUG) {
-            callback = "ChromeXt.post('extension', ${LocalFiles.start()});"
-          } else {
-            Log.toast(Chrome.getContext(), "Work in progress, might be ready in the future :)")
-          }
-        }
+        if (payload == "") ExtensionManager.show(Chrome.getContext())
       }
       "websocket" -> {
         val detail = JSONObject(payload)

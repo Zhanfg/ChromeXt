@@ -9,6 +9,7 @@ import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.chromext.Chrome
+import org.matrix.chromext.extension.ExtensionIsolatedRuntime
 import org.matrix.chromext.utils.Log
 import org.matrix.chromext.utils.invokeMethod
 import org.matrix.chromext.utils.isChromeXtFrontEnd
@@ -94,7 +95,13 @@ object ScriptDbManager {
         codes.add("fixEncoding();")
   }
 
-  fun invokeScript(url: String, webView: Any? = null, frameId: String? = null) {
+  fun invokeScript(
+      url: String,
+      webView: Any? = null,
+      frameId: String? = null,
+      browserTab: Any? = null,
+  ) {
+    val targetTab = browserTab ?: webView
     val codes = mutableListOf<String>(Local.initChromeXt)
     val path = resolveContentUrl(url)
     val webSettings = webView?.invokeMethod { name == "getSettings" }
@@ -154,7 +161,7 @@ object ScriptDbManager {
     if (!asyncEvaluation)
         Chrome.evaluateJavascript(
             listOf(initScript),
-            webView,
+            targetTab,
             frameId,
             bypassSandbox,
             bypassSandbox,
@@ -168,10 +175,16 @@ object ScriptDbManager {
             if (it.grant.contains("frames")) framesGranted = true
             GM.bootstrap(it, codes)
           }
-      if (!asyncEvaluation) Chrome.evaluateJavascript(codes, webView, frameId)
+      // MV3 content scripts use a dedicated CDP isolated world, never the page's JS global.
+      // No fallback into javascript: URLs (which would expose privileges to the webpage).
+      if (frameId == null) {
+        runCatching { ExtensionIsolatedRuntime.inject(url, targetTab, frameId) }
+            .onFailure { Log.ex(it, "Extension isolated-world scheduling failed") }
+      }
+      if (!asyncEvaluation) Chrome.evaluateJavascript(codes, targetTab, frameId)
     }
     if (asyncEvaluation)
-        Chrome.evaluateJavascript(codes, webView, frameId, bypassSandbox, bypassSandbox)
+        Chrome.evaluateJavascript(codes, targetTab, frameId, bypassSandbox, bypassSandbox)
 
     if (framesGranted && frameId == null) Chrome.injectFrames(webView)
   }

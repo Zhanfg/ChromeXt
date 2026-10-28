@@ -51,7 +51,9 @@ object UserScriptHook : BaseHook() {
             url = proxy.parseUrl(proxy.getUrl(tab))!!
           }
           if (!url.startsWith("chrome") && proxy.isLoading(tab)) {
-            ScriptDbManager.invokeScript(url)
+            // Bind injection to the actual navigating tab. Chrome.getTab() is a mutable
+            // global, and switching tabs while navigation is in flight can misdirect scripts.
+            ScriptDbManager.invokeScript(url, browserTab = tab)
           }
         }
 

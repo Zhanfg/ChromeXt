@@ -2,24 +2,30 @@ package org.matrix.chromext.extension
 
 import java.io.File
 import java.io.FileReader
+import java.io.InputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLConnection
 import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.chromext.Chrome
+import org.matrix.chromext.Resource
 import org.matrix.chromext.utils.Log
 
 object LocalFiles {
 
   private val directory: File
   private val extensions = mutableMapOf<String, JSONObject>()
-  val script: String
+  val script: String by lazy {
+    val ctx = Chrome.getContext()
+    Resource.enrich(ctx)
+    ctx.assets.open("extension.js").bufferedReader().use { it.readText() }
+  }
 
   init {
     val ctx = Chrome.getContext()
-    directory = File(ctx.getExternalFilesDir(null), "Extension")
-    script = ctx.assets.open("extension.js").bufferedReader().use { it.readText() }
+    // SAF import/list operations must not load the experimental JS runtime at startup.
+    directory = File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Extension")
     if (!directory.exists()) directory.mkdirs()
     directory.listFiles()?.forEach {
       val path = it.name
@@ -106,7 +112,7 @@ object LocalFiles {
   }
 
   fun start(): JSONObject {
-    extensions.keys.forEach { startServer(it) }
+    // The experimental HTTP file server remains disabled until audited.
     val info =
         if (extensions.keys.size == 0) {
           Log.d("No extensions found")
@@ -116,4 +122,53 @@ object LocalFiles {
         }
     return JSONObject(mapOf("type" to "init", "manifests" to info))
   }
+  /**
+   * Validates a local ZIP stream and registers its manifest for the experimental extension
+   * inventory. This does not execute code or enable the release-only extension interface.
+   */
+  @Synchronized
+  fun importZip(stream: InputStream): ImportedExtension {
+    val imported = ExtensionArchiveInstaller.installZip(stream, directory)
+    val manifest = JSONObject(File(imported.directory, "manifest.json").readText(Charsets.UTF_8))
+    extensions[imported.id] = manifest
+    ExtensionContentRuntime.invalidate()
+    return imported
+  }
+  // The preview manager owns UUID-named imported packages only.
+  private val managedId =
+      Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+  @Synchronized
+  fun listImported(): List<ImportedExtension> =
+      directory.listFiles()
+          ?.filter { it.isDirectory && managedId.matches(it.name) }
+          ?.mapNotNull { item ->
+            runCatching {
+                  val manifest = File(item, "manifest.json")
+                  require(manifest.isFile && manifest.length() <= 512L * 1024)
+                  val json = JSONObject(manifest.readText(Charsets.UTF_8))
+                  ImportedExtension(
+                      item.name,
+                      json.getString("name"),
+                      json.getString("version"),
+                      json.getInt("manifest_version"),
+                      item)
+                }
+                .getOrNull()
+          }
+          ?.sortedBy { it.name.lowercase() }
+          ?: emptyList()
+
+  @Synchronized
+  fun removeImported(id: String): Boolean {
+    if (!managedId.matches(id)) return false
+    val root = directory.canonicalFile
+    val target = File(root, id).canonicalFile
+    if (target.parentFile != root || !target.isDirectory) return false
+    if (!target.deleteRecursively()) return false
+    extensions.remove(id)
+    ExtensionContentRuntime.forget(id)
+    return true
+  }
+
 }

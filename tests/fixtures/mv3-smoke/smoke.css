@@ -1,0 +1,11 @@
+#chromext-mv3-smoke {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  bottom: 12px !important;
+  right: 12px !important;
+  padding: 9px 12px !important;
+  background: #136d4e !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font: 13px system-ui, sans-serif !important;
+}

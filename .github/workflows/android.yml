@@ -19,19 +19,30 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Test extension archive import
+      run: ./gradlew app:testDebugUnitTest
+
     - name: Build debug
       run: ./gradlew app:assembleDebug
         
     - name: Build release
-      if: ${{ ( github.event_name != 'pull_request' && github.ref == 'refs/heads/master' ) || github.ref_type == 'tag' }}
       run: ./gradlew app:assembleRelease
 
     - name: Verify release Xposed entry point
-      if: ${{ ( github.event_name != 'pull_request' && github.ref == 'refs/heads/master' ) || github.ref_type == 'tag' }}
       run: |
         "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" dex code \
           --class org.matrix.chromext.MainHook --method '<init>()V' \
           app/build/outputs/apk/release/app-release-unsigned.apk
+
+    - name: Package MV3 smoke-test extension
+      run: |
+        (cd tests/fixtures/mv3-smoke && zip -q "$GITHUB_WORKSPACE/ChromeXt_MV3_Smoke.zip" manifest.json smoke.js smoke.css)
+
+    - name: Upload MV3 smoke-test extension
+      uses: actions/upload-artifact@main
+      with:
+        name: ChromeXt_MV3_Smoke.zip
+        path: ChromeXt_MV3_Smoke.zip
 
     - name: Rename debug build
       run: mv app/build/outputs/apk/debug/app-debug.apk app/build/ChromeXt_debug.apk
