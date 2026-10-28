@@ -95,7 +95,13 @@ object ScriptDbManager {
         codes.add("fixEncoding();")
   }
 
-  fun invokeScript(url: String, webView: Any? = null, frameId: String? = null) {
+  fun invokeScript(
+      url: String,
+      webView: Any? = null,
+      frameId: String? = null,
+      browserTab: Any? = null,
+  ) {
+    val targetTab = browserTab ?: webView
     val codes = mutableListOf<String>(Local.initChromeXt)
     val path = resolveContentUrl(url)
     val webSettings = webView?.invokeMethod { name == "getSettings" }
@@ -155,7 +161,7 @@ object ScriptDbManager {
     if (!asyncEvaluation)
         Chrome.evaluateJavascript(
             listOf(initScript),
-            webView,
+            targetTab,
             frameId,
             bypassSandbox,
             bypassSandbox,
@@ -175,10 +181,10 @@ object ScriptDbManager {
         runCatching { codes.addAll(ExtensionContentRuntime.codesFor(url)) }
             .onFailure { Log.ex(it, "Content script runtime failed safely") }
       }
-      if (!asyncEvaluation) Chrome.evaluateJavascript(codes, webView, frameId)
+      if (!asyncEvaluation) Chrome.evaluateJavascript(codes, targetTab, frameId)
     }
     if (asyncEvaluation)
-        Chrome.evaluateJavascript(codes, webView, frameId, bypassSandbox, bypassSandbox)
+        Chrome.evaluateJavascript(codes, targetTab, frameId, bypassSandbox, bypassSandbox)
 
     if (framesGranted && frameId == null) Chrome.injectFrames(webView)
   }
