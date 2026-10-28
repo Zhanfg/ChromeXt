@@ -91,7 +91,7 @@ object ExtensionManager {
         "Version: ${item.version}\nManifest: V${item.manifestVersion}\n" +
             "Local ID: ${item.id}\nStatus: ${if (enabled) "Enabled" else "Disabled"}\n" +
             "Supported: MV3 content_scripts (DOM-idle, top frame only).\n" +
-            "No isolated world, chrome.* APIs, background or popup support."
+            "CDP isolated world; chrome.* APIs, background, and popups unsupported."
     AlertDialog.Builder(activity)
         .setTitle(item.name)
         .setMessage(details)
@@ -124,8 +124,9 @@ object ExtensionManager {
                 .setTitle("Enable extension content scripts?")
                 .setMessage(
                     "This runs third-party JavaScript and CSS on sites listed in its manifest. " +
-                        "Scripts execute in the page's MAIN world, not Chromium's isolated " +
-                        "extension sandbox. Do not enable extensions you do not trust.")
+                        "Scripts run in an isolated CDP execution world, with shared page DOM. " +
+                        "This is not Chromium's full extension sandbox or permissions system. " +
+                        "Only enable trusted extensions.")
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton("Enable") { _, _ ->
                   runCatching { ExtensionContentRuntime.setEnabled(item, true) }

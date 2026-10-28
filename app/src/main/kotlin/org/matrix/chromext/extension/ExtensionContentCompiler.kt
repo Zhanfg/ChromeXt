@@ -15,7 +15,7 @@ data class CompiledContentScript(
       matches.any { ExtensionMatchPattern.matches(it, url) } &&
           excludes.none { ExtensionMatchPattern.matches(it, url) }
 
-  /** Main-world approximation, NOT native isolated-world WebExtensions execution. */
+  /** Script dispatched to a CDP isolated world; native chrome.* APIs remain unavailable. */
   fun code(): String {
     val key = JSONObject.quote("chromext-content-$extensionId-$ruleIndex")
     val style = if (css.isEmpty()) "" else
@@ -53,6 +53,16 @@ object ExtensionContentCompiler {
     }
     val manifest = JSONObject(manifestFile.readText(Charsets.UTF_8))
     require(manifest.optInt("manifest_version") == 3) { "Requires manifest V3" }
+    // Fail closed rather than granting a misleading partial "enabled" status.
+    // Privileged extension features must be implemented in a separate authenticated API plane.
+    val forbidden = listOf(
+        "background", "action", "browser_action", "page_action", "commands",
+        "permissions", "optional_permissions", "host_permissions",
+        "optional_host_permissions", "declarative_net_request", "declarativeNetRequest",
+        "externally_connectable", "devtools_page", "side_panel")
+    require(forbidden.none { manifest.has(it) }) {
+      "Extension requests APIs or background features not yet supported"
+    }
     val rules = manifest.optJSONArray("content_scripts")
         ?: throw IllegalArgumentException("No content_scripts in manifest")
     require(rules.length() in 1..MAX_RULES) { "Invalid content_scripts count" }
@@ -91,6 +101,14 @@ object ExtensionContentCompiler {
         "Only document_idle supported"
       }
       require(!rule.optBoolean("all_frames")) { "all_frames unsupported" }
+      require(rule.optString("world", "ISOLATED") == "ISOLATED") {
+        "Only CDP ISOLATED world supported"
+      }
+      require(!rule.optBoolean("match_about_blank") &&
+          !rule.optBoolean("match_origin_as_fallback") &&
+          !rule.has("include_globs") && !rule.has("exclude_globs")) {
+        "Frame fallback or glob matching requires additional support"
+      }
       val matches = patterns(rule, "matches")
       require(matches.isNotEmpty()) { "Missing matches" }
       val css = resources(rule, "css")

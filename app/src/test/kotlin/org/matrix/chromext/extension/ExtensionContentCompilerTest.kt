@@ -46,6 +46,20 @@ class ExtensionContentCompilerTest {
     } finally { dir.deleteRecursively() }
   }
 
+  @Test fun blocksUnsupportedPermissionsEvenWithContentScript() {
+    val root = Files.createTempDirectory("mv3-permissions").toFile()
+    try {
+      root.resolve("manifest.json").writeText(
+          """{"manifest_version":3,"name":"Privileged","version":"1","permissions":["storage"],"content_scripts":[{"matches":["<all_urls>"],"js":["script.js"]}]}""")
+      root.resolve("script.js").writeText("console.log('hello')")
+      assertThrows(IllegalArgumentException::class.java) {
+        ExtensionContentCompiler.compile(root, "privileged")
+      }
+    } finally {
+      root.deleteRecursively()
+    }
+  }
+
   @Test fun blocksUnsupportedFrames() {
     val dir = Files.createTempDirectory("mv3-test").toFile()
     try {

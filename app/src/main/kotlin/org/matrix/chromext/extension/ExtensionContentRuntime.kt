@@ -50,9 +50,8 @@ object ExtensionContentRuntime {
     }
   }
 
-  fun codesFor(url: String, frameId: String? = null): List<String> {
-    if (frameId != null || !(url.startsWith("https://") || url.startsWith("http://")))
-        return emptyList()
-    return loaded().filter { it.appliesTo(url) }.map { it.code() }
+  fun bundlesFor(url: String): List<CompiledContentScript> {
+    if (!url.startsWith("https://") && !url.startsWith("http://")) return emptyList()
+    return loaded().filter { it.appliesTo(url) }
   }
 }

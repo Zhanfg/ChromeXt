@@ -87,3 +87,20 @@ A smoke-test extension lives under `tests/fixtures/mv3-smoke`, and CI packages i
 `ChromeXt_MV3_Smoke.zip`. Install it via the Extension UI and explicitly enable it, visit
 `https://example.com/`, reload: a small green `ChromeXt content script active` badge
 should appear near the lower right if the navigation-to-JS bridge works on that Chrome build.
+
+## Phase 4: isolated-world execution path
+
+Manifest V3 content scripts now execute via `Page.getFrameTree`,
+`Page.createIsolatedWorld` and `Runtime.evaluate(contextId)` over the Chromium DevTools
+Protocol, instead of using `javascript:` URLs in the webpage's MAIN world. Each extension
+gets a named execution world; execution failures do **not** fall back to the MAIN world.
+
+This enables a separate JavaScript global while preserving access to page DOM. It is **not**
+the complete Chromium extension host. There is no native WebExtension identity, API permission
+enforcement, background Service Worker, or Web Store installation. Enabling a manifest that
+declares privileged permissions, actions, or background execution now fails closed rather
+than giving a misleading "supported" status.
+
+CDP availability is a runtime requirement. When Chrome disables remote debugging or CDP
+isolated worlds, the extension remains unable to execute. No unsafe fallback is attempted.
+Navigation timing and lifecycle still require target Chrome / Android 17 testing.
