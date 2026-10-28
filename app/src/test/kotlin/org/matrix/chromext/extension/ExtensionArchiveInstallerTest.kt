@@ -118,4 +118,42 @@ class ExtensionArchiveInstallerTest {
       root.deleteRecursively()
     }
   }
+  @Test
+  fun refusesCaseInsensitiveDuplicatePaths() {
+    val root = Files.createTempDirectory("chromext-test").toFile()
+    try {
+      var rejected = false
+      try {
+        ExtensionArchiveInstaller.installZip(
+            ByteArrayInputStream(
+                zip("manifest.json" to manifest, "assets/Logo.png" to "a", "assets/logo.png" to "b")),
+            root)
+      } catch (_: IllegalArgumentException) {
+        rejected = true
+      }
+      assertTrue(rejected)
+      assertTrue(root.listFiles().isNullOrEmpty())
+    } finally {
+      root.deleteRecursively()
+    }
+  }
+
+  @Test
+  fun refusesWrappedManifestInsteadOfExtensionRoot() {
+    val root = Files.createTempDirectory("chromext-test").toFile()
+    try {
+      var rejected = false
+      try {
+        ExtensionArchiveInstaller.installZip(
+            ByteArrayInputStream(zip("myextension/manifest.json" to manifest)), root)
+      } catch (_: IllegalArgumentException) {
+        rejected = true
+      }
+      assertTrue(rejected)
+      assertTrue(root.listFiles().isNullOrEmpty())
+    } finally {
+      root.deleteRecursively()
+    }
+  }
+
 }

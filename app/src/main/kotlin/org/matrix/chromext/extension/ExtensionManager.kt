@@ -27,9 +27,10 @@ object ExtensionManager {
   private fun findActivity(context: Context): Activity? {
     var current: Context = context
     repeat(12) {
-      if (current is Activity) return current
-      if (current !is ContextWrapper) return null
-      val base = current.baseContext
+      val activity = current as? Activity
+      if (activity != null) return activity
+      val wrapper = current as? ContextWrapper ?: return null
+      val base = wrapper.baseContext
       if (base === current) return null
       current = base
     }

@@ -26,11 +26,9 @@ jobs:
       run: ./gradlew app:assembleDebug
         
     - name: Build release
-      if: ${{ ( github.event_name != 'pull_request' && github.ref == 'refs/heads/master' ) || github.ref_type == 'tag' }}
       run: ./gradlew app:assembleRelease
 
     - name: Verify release Xposed entry point
-      if: ${{ ( github.event_name != 'pull_request' && github.ref == 'refs/heads/master' ) || github.ref_type == 'tag' }}
       run: |
         "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" dex code \
           --class org.matrix.chromext.MainHook --method '<init>()V' \
