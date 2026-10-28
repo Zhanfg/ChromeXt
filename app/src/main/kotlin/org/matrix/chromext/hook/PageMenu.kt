@@ -313,7 +313,7 @@ object PageMenuHook : BaseHook() {
           MenuInflater(ctx).inflate(R.menu.main_menu, menu)
 
           // Show items with indices in main_menu.xml
-          val toShow = mutableListOf<Int>(1) // Reversed index in main_menu
+          val toShow = mutableListOf<Int>(1, 3) // Eruda + Extensions, reversed resource indices
 
           if (isDevToolsFrontEnd(url)) {
             toShow.clear()
@@ -354,8 +354,10 @@ object PageMenuHook : BaseHook() {
           // unguarded getResourceName or index here would drop the ChromeXt entries wholesale.
           val position = dividers.getOrNull(1) ?: dividers.lastOrNull() ?: (items.size - 1)
 
-          toShow.forEach {
-            val newMenuItem: MenuItem = items[items.size - it]
+          // Snapshot the inflated entries before mutating the list; otherwise a second
+          // index resolves against the already-mutated ArrayList (wrong item / duplicate).
+          val toInsert = toShow.map { items[items.size - it] }
+          toInsert.forEach { newMenuItem ->
             newMenuItem.setVisible(true)
             items.add(position + 1, newMenuItem)
           }
@@ -626,7 +628,13 @@ object PageMenuHook : BaseHook() {
                         R.id.eruda_console_id,
                         R.string.main_menu_eruda_console,
                         R.drawable.ic_devtools,
-                    ))
+                    ),
+                    Triple(
+                        R.id.extension_id,
+                        R.string.main_menu_extension,
+                        R.drawable.ic_extension,
+                    ),
+                )
               }
 
           val menusToAdd = mutableListOf<Any>()
