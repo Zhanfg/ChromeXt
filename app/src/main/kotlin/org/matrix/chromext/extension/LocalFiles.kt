@@ -9,18 +9,23 @@ import java.net.URLConnection
 import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.chromext.Chrome
+import org.matrix.chromext.Resource
 import org.matrix.chromext.utils.Log
 
 object LocalFiles {
 
   private val directory: File
   private val extensions = mutableMapOf<String, JSONObject>()
-  val script: String
+  val script: String by lazy {
+    val ctx = Chrome.getContext()
+    Resource.enrich(ctx)
+    ctx.assets.open("extension.js").bufferedReader().use { it.readText() }
+  }
 
   init {
     val ctx = Chrome.getContext()
-    directory = File(ctx.getExternalFilesDir(null), "Extension")
-    script = ctx.assets.open("extension.js").bufferedReader().use { it.readText() }
+    // SAF import/list operations must not load the experimental JS runtime at startup.
+    directory = File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Extension")
     if (!directory.exists()) directory.mkdirs()
     directory.listFiles()?.forEach {
       val path = it.name

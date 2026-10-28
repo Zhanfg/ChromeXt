@@ -40,15 +40,25 @@ object ExtensionManager {
   fun show(context: Context) {
     val activity = findActivity(context)
     if (activity == null) {
-      Log.e("No active browser Activity for extension manager")
+      Log.e("No active Chrome Activity for extension manager")
+      Toast.makeText(context, "ChromeXt: no active browser window", Toast.LENGTH_LONG).show()
       return
     }
-    activity.runOnUiThread { showList(activity) }
+    activity.runOnUiThread {
+      runCatching { showList(activity) }
+          .onFailure {
+            Log.ex(it, "Extension manager dialog failed")
+            toast(activity, "ChromeXt extension manager failed to open")
+          }
+    }
   }
 
   private fun showList(activity: Activity) {
     if (activity.isFinishing || activity.isDestroyed) return
-    val items = LocalFiles.listImported()
+    val items =
+        runCatching { LocalFiles.listImported() }
+            .onFailure { Log.ex(it, "Unable to read imported extensions") }
+            .getOrDefault(emptyList())
     val labels =
         items.map { "${it.name} · v${it.version} (inactive)" } +
             listOf("+ Import extension ZIP")

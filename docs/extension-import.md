@@ -51,3 +51,14 @@ system picker is open still needs a device test and may require a lifecycle inte
 The experimental HTTP file server is not started by this flow. CRX packages, Chrome Web
 Store installs, manifest v3 service workers, Chrome extension APIs, host permissions, and
 background execution are NOT supported. Android 17/Chrome device verification is pending.
+
+## Bugfix: visible Extensions item does not open
+
+- Handle the menu action by `R.id.extension_id` directly (no resource-name lookup).
+- Route the actual Chrome Activity from the menu click into `ExtensionManager.show()`.
+  Previously `Listener.on("extension")` could resolve an application or tab context,
+  causing a silent no-op when the UI needed an Activity.
+- Explicitly consume the module menu event and add tagged diagnostics.
+- Lazy-load the incomplete JavaScript extension stub; importing and listing archives no
+  longer depend on `extension.js` or an enriched AssetManager.
+- Android 17 click-to-dialog and SAF result still require device verification.

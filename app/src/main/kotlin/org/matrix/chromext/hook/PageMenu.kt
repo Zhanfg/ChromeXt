@@ -15,6 +15,7 @@ import java.util.ArrayList
 import java.util.LinkedHashSet
 import org.matrix.chromext.Chrome
 import org.matrix.chromext.Listener
+import org.matrix.chromext.extension.ExtensionManager
 import org.matrix.chromext.R
 import org.matrix.chromext.Resource
 import org.matrix.chromext.proxy.PageMenuProxy
@@ -112,6 +113,17 @@ object PageMenuHook : BaseHook() {
     val proxy = PageMenuProxy
 
     fun menuHandler(ctx: Context, id: Int): Boolean {
+      // MENU_ITEM_ID is a module resource ID. Dispatch it using its numeric value instead of
+      // relying on name lookup through Chrome's Resources (which can throw or be remapped).
+      if (id == R.id.extension_id) {
+        Log.i("Extension menu click dispatched to ChromeXt manager")
+        runCatching { ExtensionManager.show(ctx) }
+            .onFailure {
+              Log.ex(it, "Cannot launch extension manager")
+              Log.toast(ctx, "Unable to open ChromeXt extensions")
+            }
+        return true
+      }
       if (id == readerMode.ID) {
         readerMode.activate()
         return true
@@ -147,7 +159,7 @@ object PageMenuHook : BaseHook() {
         }
         .hookBefore {
           if (menuHandler(it.thisObject as Context, it.args[0] as Int)) {
-            it.result = true
+            it.result = true // Consume the action; Chrome must not handle our private menu ID.
           }
         }
 
@@ -160,7 +172,7 @@ object PageMenuHook : BaseHook() {
         }
         .hookBefore {
           if (menuHandler(it.thisObject as Context, it.args[0] as Int)) {
-            it.result = true
+            it.result = true // Consume the action; Chrome must not handle our private menu ID.
           }
         }
 
