@@ -63,7 +63,7 @@ object ExtensionManager {
         items.map { "${it.name} · v${it.version} (${if (ExtensionContentRuntime.isEnabled(it.id)) "enabled" else "disabled"})" } +
             listOf("+ Import extension ZIP")
     AlertDialog.Builder(activity)
-        .setTitle("ChromeXt extensions · inactive")
+        .setTitle("ChromeXt extensions · experimental")
         // AlertDialog uses its message ScrollView in preference to the list view.
         // Setting both setMessage and setItems hides the import/list controls on Android.
         .setItems(labels.toTypedArray()) { _, position ->

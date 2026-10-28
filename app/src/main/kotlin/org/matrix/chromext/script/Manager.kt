@@ -171,7 +171,10 @@ object ScriptDbManager {
           }
       // Opt-in content scripts execute through ChromeXt's existing navigation injection path.
       // This is NOT native MV3: main-world only, no background, no privileged chrome.* API.
-      if (frameId == null) codes.addAll(ExtensionContentRuntime.codesFor(url))
+      if (frameId == null) {
+        runCatching { codes.addAll(ExtensionContentRuntime.codesFor(url)) }
+            .onFailure { Log.ex(it, "Content script runtime failed safely") }
+      }
       if (!asyncEvaluation) Chrome.evaluateJavascript(codes, webView, frameId)
     }
     if (asyncEvaluation)

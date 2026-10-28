@@ -10,7 +10,7 @@ object ExtensionMatchPattern {
     val host = url.host?.lowercase() ?: return false
     if (scheme !in listOf("http", "https") || url.rawUserInfo != null) return false
     if (pattern == "<all_urls>") return true
-    val parts = Regex("""^(\*|http|https)://([^/]+)/(.+)$""").matchEntire(pattern) ?: return false
+    val parts = Regex("""^(\*|http|https)://([^/]+)/(.*)$""").matchEntire(pattern) ?: return false
     val ruleScheme = parts.groupValues[1]
     val ruleHost = parts.groupValues[2].lowercase()
     if (ruleScheme != "*" && ruleScheme != scheme) return false
