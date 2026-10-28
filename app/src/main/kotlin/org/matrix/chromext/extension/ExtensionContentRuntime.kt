@@ -28,6 +28,7 @@ object ExtensionContentRuntime {
   fun forget(id: String) {
     Chrome.getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         .edit().remove("enabled:$id").apply()
+    ExtensionStorageBridge.erase(id)
     snapshot = null
   }
 

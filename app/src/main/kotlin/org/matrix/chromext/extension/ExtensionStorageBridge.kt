@@ -14,6 +14,14 @@ object ExtensionStorageBridge {
       Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
   @Synchronized
+  fun erase(extensionId: String) {
+    if (!ids.matches(extensionId)) return
+    Chrome.getContext().getSharedPreferences(
+        "ChromeXtExtensionStore_$extensionId", Context.MODE_PRIVATE)
+        .edit().clear().commit()
+  }
+
+  @Synchronized
   fun dispatch(extensionId: String, payload: String): JSONObject {
     try {
       require(ids.matches(extensionId) && ExtensionContentRuntime.isEnabled(extensionId)) {
