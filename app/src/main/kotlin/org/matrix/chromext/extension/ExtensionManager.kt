@@ -60,7 +60,7 @@ object ExtensionManager {
             .onFailure { Log.ex(it, "Unable to read imported extensions") }
             .getOrDefault(emptyList())
     val labels =
-        items.map { "${it.name} · v${it.version} (inactive)" } +
+        items.map { "${it.name} · v${it.version} (${if (ExtensionContentRuntime.isEnabled(it.id)) "enabled" else "disabled"})" } +
             listOf("+ Import extension ZIP")
     AlertDialog.Builder(activity)
         .setTitle("ChromeXt extensions · inactive")
@@ -85,32 +85,65 @@ object ExtensionManager {
   }
 
   private fun showDetails(activity: Activity, item: ImportedExtension) {
+    val enabled = ExtensionContentRuntime.isEnabled(item.id)
+    val label = if (enabled) "Disable content scripts" else "Enable content scripts"
     val details =
         "Version: ${item.version}\nManifest: V${item.manifestVersion}\n" +
-            "Local ID: ${item.id}\nStatus: inactive (runtime not implemented)"
+            "Local ID: ${item.id}\nStatus: ${if (enabled) "Enabled" else "Disabled"}\n" +
+            "Supported: MV3 content_scripts (DOM-idle, top frame only).\n" +
+            "No isolated world, chrome.* APIs, background or popup support."
     AlertDialog.Builder(activity)
         .setTitle(item.name)
         .setMessage(details)
-        .setNegativeButton(android.R.string.cancel, null)
-        .setNeutralButton("Back") { _, _ -> showList(activity) }
-        .setPositiveButton("Delete") { _, _ ->
+        .setNegativeButton("Back") { _, _ -> showList(activity) }
+        .setNeutralButton("Delete") { _, _ ->
           AlertDialog.Builder(activity)
               .setTitle("Delete ${item.name}?")
-              .setMessage("Only this imported package's files will be removed.")
+              .setMessage("This only removes imported extension files.")
               .setNegativeButton(android.R.string.cancel, null)
               .setPositiveButton("Delete") { _, _ ->
                 Chrome.IO.execute {
-                  val deleted =
-                      runCatching { LocalFiles.removeImported(item.id) }.getOrDefault(false)
+                  val deleted = runCatching { LocalFiles.removeImported(item.id) }.getOrDefault(false)
                   activity.runOnUiThread {
                     if (!activity.isFinishing && !activity.isDestroyed) {
-                      toast(activity, if (deleted) "Package deleted" else "Unable to delete package")
+                      toast(activity, if (deleted) "Deleted" else "Unable to delete")
                       showList(activity)
                     }
                   }
                 }
               }
               .show()
+        }
+        .setPositiveButton(label) { _, _ ->
+          if (enabled) {
+            ExtensionContentRuntime.setEnabled(item, false)
+            toast(activity, "Disabled. Reload tabs to remove injected changes.")
+            showList(activity)
+          } else {
+            AlertDialog.Builder(activity)
+                .setTitle("Enable extension content scripts?")
+                .setMessage(
+                    "This runs third-party JavaScript and CSS on sites listed in its manifest. " +
+                        "Scripts execute in the page's MAIN world, not Chromium's isolated " +
+                        "extension sandbox. Do not enable extensions you do not trust.")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton("Enable") { _, _ ->
+                  runCatching { ExtensionContentRuntime.setEnabled(item, true) }
+                      .onSuccess {
+                        toast(activity, "Enabled. Reload a matching web page.")
+                        showList(activity)
+                      }
+                      .onFailure {
+                        Log.ex(it, "Extension activation rejected")
+                        AlertDialog.Builder(activity)
+                            .setTitle("Cannot enable this extension")
+                            .setMessage(it.message ?: "Unsupported manifest or script resources")
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                      }
+                }
+                .show()
+          }
         }
         .show()
   }
@@ -224,7 +257,7 @@ object ExtensionManager {
         if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
         result
             .onSuccess {
-              toast(activity, "Imported ${it.name} (inactive)")
+              toast(activity, "Imported ${it.name} (disabled)")
               showList(activity)
             }
             .onFailure {

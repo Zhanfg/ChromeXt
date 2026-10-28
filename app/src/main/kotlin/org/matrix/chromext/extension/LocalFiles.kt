@@ -131,6 +131,7 @@ object LocalFiles {
     val imported = ExtensionArchiveInstaller.installZip(stream, directory)
     val manifest = JSONObject(File(imported.directory, "manifest.json").readText(Charsets.UTF_8))
     extensions[imported.id] = manifest
+    ExtensionContentRuntime.invalidate()
     return imported
   }
   // The preview manager owns UUID-named imported packages only.
@@ -166,6 +167,7 @@ object LocalFiles {
     if (target.parentFile != root || !target.isDirectory) return false
     if (!target.deleteRecursively()) return false
     extensions.remove(id)
+    ExtensionContentRuntime.forget(id)
     return true
   }
 

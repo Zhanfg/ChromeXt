@@ -9,6 +9,7 @@ import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.chromext.Chrome
+import org.matrix.chromext.extension.ExtensionContentRuntime
 import org.matrix.chromext.utils.Log
 import org.matrix.chromext.utils.invokeMethod
 import org.matrix.chromext.utils.isChromeXtFrontEnd
@@ -168,6 +169,9 @@ object ScriptDbManager {
             if (it.grant.contains("frames")) framesGranted = true
             GM.bootstrap(it, codes)
           }
+      // Opt-in content scripts execute through ChromeXt's existing navigation injection path.
+      // This is NOT native MV3: main-world only, no background, no privileged chrome.* API.
+      if (frameId == null) codes.addAll(ExtensionContentRuntime.codesFor(url))
       if (!asyncEvaluation) Chrome.evaluateJavascript(codes, webView, frameId)
     }
     if (asyncEvaluation)

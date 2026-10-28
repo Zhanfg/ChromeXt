@@ -65,3 +65,25 @@ background execution are NOT supported. Android 17/Chrome device verification is
 
 - Use an item-only AlertDialog for the extension picker. Mixing `setMessage` and `setItems`
   caused the list to be hidden by the message view on Android.
+
+## Phase 3: opt-in content-script execution
+
+The new `ExtensionContentRuntime` connects user-approved MV3 `content_scripts` to ChromeXt's
+existing navigation-time JavaScript injection. ZIPs remain **disabled by default**.
+Open Extensions → imported extension → Enable content scripts → reload a matching page.
+
+Supported now: `manifest_version: 3`, `content_scripts.matches`, `exclude_matches`,
+local `js` and `css`, `document_idle` approximation, top-level HTTP(S) documents only.
+Explicit safety confirmation is shown before execution. Importing a ZIP never activates it.
+
+This is a **non-isolated, page-main-world compatibility fallback**, not a full WebExtensions
+host. Other manifest features and `chrome.*` extension APIs are not implemented. The content
+script can interact with the page DOM, but is **not** safe to run from untrusted packages.
+All frames, native MV3 service workers, toolbar popups, store installation and all native
+extension permissions remain unsupported. Chromium version/target device compatibility
+is still unverified.
+
+A smoke-test extension lives under `tests/fixtures/mv3-smoke`, and CI packages it as
+`ChromeXt_MV3_Smoke.zip`. Install it via the Extension UI and explicitly enable it, visit
+`https://example.com/`, reload: a small green `ChromeXt content script active` badge
+should appear near the lower right if the navigation-to-JS bridge works on that Chrome build.
