@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ChromeXt MV3 Content Script Smoke Test",
+  "version": "1.0.0",
+  "description": "Verifies basic content-script injection on example.com.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://example.com/*"
+      ],
+      "run_at": "document_idle",
+      "js": [
+        "smoke.js"
+      ],
+      "css": [
+        "smoke.css"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage"
+  ]
+}

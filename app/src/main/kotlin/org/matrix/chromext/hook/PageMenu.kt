@@ -15,6 +15,7 @@ import java.util.ArrayList
 import java.util.LinkedHashSet
 import org.matrix.chromext.Chrome
 import org.matrix.chromext.Listener
+import org.matrix.chromext.extension.ExtensionManager
 import org.matrix.chromext.R
 import org.matrix.chromext.Resource
 import org.matrix.chromext.proxy.PageMenuProxy
@@ -112,6 +113,17 @@ object PageMenuHook : BaseHook() {
     val proxy = PageMenuProxy
 
     fun menuHandler(ctx: Context, id: Int): Boolean {
+      // MENU_ITEM_ID is a module resource ID. Dispatch it using its numeric value instead of
+      // relying on name lookup through Chrome's Resources (which can throw or be remapped).
+      if (id == R.id.extension_id) {
+        Log.i("Extension menu click dispatched to ChromeXt manager")
+        runCatching { ExtensionManager.show(ctx) }
+            .onFailure {
+              Log.ex(it, "Cannot launch extension manager")
+              Log.toast(ctx, "Unable to open ChromeXt extensions")
+            }
+        return true
+      }
       if (id == readerMode.ID) {
         readerMode.activate()
         return true
@@ -147,7 +159,7 @@ object PageMenuHook : BaseHook() {
         }
         .hookBefore {
           if (menuHandler(it.thisObject as Context, it.args[0] as Int)) {
-            it.result = true
+            it.result = true // Consume the action; Chrome must not handle our private menu ID.
           }
         }
 
@@ -160,7 +172,7 @@ object PageMenuHook : BaseHook() {
         }
         .hookBefore {
           if (menuHandler(it.thisObject as Context, it.args[0] as Int)) {
-            it.result = true
+            it.result = true // Consume the action; Chrome must not handle our private menu ID.
           }
         }
 
@@ -313,7 +325,7 @@ object PageMenuHook : BaseHook() {
           MenuInflater(ctx).inflate(R.menu.main_menu, menu)
 
           // Show items with indices in main_menu.xml
-          val toShow = mutableListOf<Int>(1) // Reversed index in main_menu
+          val toShow = mutableListOf<Int>(1, 3) // Eruda + Extensions, reversed resource indices
 
           if (isDevToolsFrontEnd(url)) {
             toShow.clear()
@@ -354,8 +366,10 @@ object PageMenuHook : BaseHook() {
           // unguarded getResourceName or index here would drop the ChromeXt entries wholesale.
           val position = dividers.getOrNull(1) ?: dividers.lastOrNull() ?: (items.size - 1)
 
-          toShow.forEach {
-            val newMenuItem: MenuItem = items[items.size - it]
+          // Snapshot the inflated entries before mutating the list; otherwise a second
+          // index resolves against the already-mutated ArrayList (wrong item / duplicate).
+          val toInsert = toShow.map { items[items.size - it] }
+          toInsert.forEach { newMenuItem ->
             newMenuItem.setVisible(true)
             items.add(position + 1, newMenuItem)
           }
@@ -626,7 +640,13 @@ object PageMenuHook : BaseHook() {
                         R.id.eruda_console_id,
                         R.string.main_menu_eruda_console,
                         R.drawable.ic_devtools,
-                    ))
+                    ),
+                    Triple(
+                        R.id.extension_id,
+                        R.string.main_menu_extension,
+                        R.drawable.ic_extension,
+                    ),
+                )
               }
 
           val menusToAdd = mutableListOf<Any>()
